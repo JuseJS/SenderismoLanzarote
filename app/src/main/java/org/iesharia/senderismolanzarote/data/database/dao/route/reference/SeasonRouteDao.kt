@@ -1,4 +1,4 @@
-package org.iesharia.senderismolanzarote.data.database.dao.reference
+package org.iesharia.senderismolanzarote.data.database.dao.route.reference
 
 import androidx.room.*
 import org.iesharia.senderismolanzarote.data.database.entity.route.reference.SeasonRoute
