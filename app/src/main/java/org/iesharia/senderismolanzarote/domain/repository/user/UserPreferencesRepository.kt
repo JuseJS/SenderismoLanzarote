@@ -1,12 +1,12 @@
 package org.iesharia.senderismolanzarote.domain.repository.user
 
 import kotlinx.coroutines.flow.Flow
-import org.iesharia.senderismolanzarote.domain.model.user.UserPreferences
+import org.iesharia.senderismolanzarote.domain.model.user.UserPreferencesModel
 
 interface UserPreferencesRepository {
-    suspend fun getUserPreferences(userId: Int): UserPreferences?
-    fun getAllPreferences(): Flow<List<UserPreferences>>
-    suspend fun insertUserPreferences(preferences: UserPreferences)
-    suspend fun updateUserPreferences(preferences: UserPreferences)
-    suspend fun deleteUserPreferences(preferences: UserPreferences)
+    suspend fun getUserPreferences(userId: Int): UserPreferencesModel?
+    fun getAllPreferences(): Flow<List<UserPreferencesModel>>
+    suspend fun insertUserPreferences(preferences: UserPreferencesModel)
+    suspend fun updateUserPreferences(preferences: UserPreferencesModel)
+    suspend fun deleteUserPreferences(preferences: UserPreferencesModel)
 }
