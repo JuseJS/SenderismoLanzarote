@@ -1,4 +1,4 @@
-package org.iesharia.senderismolanzarote.data.database.dao.route
+package org.iesharia.senderismolanzarote.data.database.dao.route.main
 
 import androidx.room.*
 import org.iesharia.senderismolanzarote.data.database.entity.route.main.Route
