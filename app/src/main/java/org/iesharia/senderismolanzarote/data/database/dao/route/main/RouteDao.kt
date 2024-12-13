@@ -1,17 +1,17 @@
 package org.iesharia.senderismolanzarote.data.database.dao.route.main
 
 import androidx.room.*
-import org.iesharia.senderismolanzarote.data.database.entity.route.main.Route
+import org.iesharia.senderismolanzarote.data.database.entity.route.main.RouteEntity
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 
 @Dao
 interface RouteDao {
     @Query("SELECT * FROM routes")
-    fun getAllRoutes(): Flow<List<Route>>
+    fun getAllRoutes(): Flow<List<RouteEntity>>
 
     @Query("SELECT * FROM routes WHERE id = :routeId")
-    suspend fun getRouteById(routeId: Int): Route?
+    suspend fun getRouteById(routeId: Int): RouteEntity?
 
     @Query("""
         SELECT * FROM routes 
@@ -23,14 +23,14 @@ interface RouteDao {
         maxDifficulty: Int,
         maxDistance: BigDecimal,
         maxDurationMinutes: Int
-    ): Flow<List<Route>>
+    ): Flow<List<RouteEntity>>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertRoute(route: Route)
+    suspend fun insertRoute(routeEntity: RouteEntity)
 
     @Update
-    suspend fun updateRoute(route: Route)
+    suspend fun updateRoute(routeEntity: RouteEntity)
 
     @Delete
-    suspend fun deleteRoute(route: Route)
+    suspend fun deleteRoute(routeEntity: RouteEntity)
 }
