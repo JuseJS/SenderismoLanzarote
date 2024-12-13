@@ -1,15 +1,16 @@
 package org.iesharia.senderismolanzarote.data.mapper.route.main
 
-import org.iesharia.senderismolanzarote.data.database.entity.route.main.NearbyService as NearbyServiceEntity
-import org.iesharia.senderismolanzarote.domain.model.route.main.NearbyService as NearbyServiceModel
+import org.iesharia.senderismolanzarote.data.database.entity.route.main.NearbyServiceEntity
+import org.iesharia.senderismolanzarote.domain.model.route.main.NearbyServiceModel
 
 fun NearbyServiceEntity.toNearbyService(
-    serviceType: org.iesharia.senderismolanzarote.domain.model.route.reference.ServiceType
+    routeModel: org.iesharia.senderismolanzarote.domain.model.route.main.RouteModel,
+    serviceTypeModel: org.iesharia.senderismolanzarote.domain.model.route.reference.ServiceTypeModel
 ): NearbyServiceModel {
     return NearbyServiceModel(
         id = id,
-        routeId = routeId,
-        serviceType = serviceType,
+        routeModel = routeModel,
+        serviceTypeModel = serviceTypeModel,
         name = name,
         description = description,
         distanceMeters = distanceMeters,
@@ -21,8 +22,8 @@ fun NearbyServiceEntity.toNearbyService(
 fun NearbyServiceModel.toNearbyServiceEntity(): NearbyServiceEntity {
     return NearbyServiceEntity(
         id = id,
-        routeId = routeId,
-        serviceTypeId = serviceType.id,
+        routeId = routeModel.id,
+        serviceTypeId = serviceTypeModel.id,
         name = name,
         description = description,
         distanceMeters = distanceMeters,

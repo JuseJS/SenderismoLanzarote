@@ -1,16 +1,17 @@
 package org.iesharia.senderismolanzarote.data.mapper.route.main
 
-import org.iesharia.senderismolanzarote.data.database.entity.route.main.PointOfInterest as PointOfInterestEntity
-import org.iesharia.senderismolanzarote.domain.model.route.main.PointOfInterest as PointOfInterestModel
+import org.iesharia.senderismolanzarote.data.database.entity.route.main.PointOfInterestEntity
+import org.iesharia.senderismolanzarote.domain.model.route.main.PointOfInterestModel
 
 fun PointOfInterestEntity.toPointOfInterest(
-    poiType: org.iesharia.senderismolanzarote.domain.model.route.reference.PoiType
+    routeModel: org.iesharia.senderismolanzarote.domain.model.route.main.RouteModel,
+    poiTypeModel: org.iesharia.senderismolanzarote.domain.model.route.reference.PoiTypeModel
 ): PointOfInterestModel {
     return PointOfInterestModel(
         id = id,
-        routeId = routeId,
+        routeModel = routeModel,
         name = name,
-        type = poiType,
+        type = poiTypeModel,
         description = description,
         latitude = latitude,
         longitude = longitude,
@@ -22,7 +23,7 @@ fun PointOfInterestEntity.toPointOfInterest(
 fun PointOfInterestModel.toPointOfInterestEntity(): PointOfInterestEntity {
     return PointOfInterestEntity(
         id = id,
-        routeId = routeId,
+        routeId = routeModel.id,
         name = name,
         typeId = type.id,
         description = description,

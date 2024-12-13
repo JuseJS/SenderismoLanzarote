@@ -1,13 +1,16 @@
 package org.iesharia.senderismolanzarote.data.mapper.route.main
 
-import org.iesharia.senderismolanzarote.data.database.entity.route.main.ActivityRecord as ActivityRecordEntity
-import org.iesharia.senderismolanzarote.domain.model.route.main.ActivityRecord as ActivityRecordModel
+import org.iesharia.senderismolanzarote.data.database.entity.route.main.ActivityRecordEntity
+import org.iesharia.senderismolanzarote.domain.model.route.main.ActivityRecordModel
 
-fun ActivityRecordEntity.toActivityRecord(route: org.iesharia.senderismolanzarote.domain.model.route.main.Route): ActivityRecordModel {
+fun ActivityRecordEntity.toActivityRecord(
+    userModel: org.iesharia.senderismolanzarote.domain.model.user.UserModel,
+    routeModel: org.iesharia.senderismolanzarote.domain.model.route.main.RouteModel
+): ActivityRecordModel {
     return ActivityRecordModel(
         id = id,
-        userId = userId,
-        route = route,
+        userModel = userModel,
+        routeModel = routeModel,
         startDate = startDate,
         endDate = endDate,
         totalTime = totalTime,
@@ -19,8 +22,8 @@ fun ActivityRecordEntity.toActivityRecord(route: org.iesharia.senderismolanzarot
 fun ActivityRecordModel.toActivityRecordEntity(): ActivityRecordEntity {
     return ActivityRecordEntity(
         id = id,
-        userId = userId,
-        routeId = route.id,
+        userId = userModel.id,
+        routeId = routeModel.id,
         startDate = startDate,
         endDate = endDate,
         totalTime = totalTime,

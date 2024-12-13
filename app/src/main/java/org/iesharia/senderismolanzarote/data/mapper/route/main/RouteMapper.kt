@@ -1,17 +1,17 @@
 package org.iesharia.senderismolanzarote.data.mapper.route.main
 
-import org.iesharia.senderismolanzarote.data.database.entity.route.main.Route as RouteEntity
-import org.iesharia.senderismolanzarote.domain.model.route.main.Route as RouteModel
+import org.iesharia.senderismolanzarote.data.database.entity.route.main.RouteEntity
+import org.iesharia.senderismolanzarote.domain.model.route.main.RouteModel
 
 fun RouteEntity.toRoute(
-    difficultyLevel: org.iesharia.senderismolanzarote.domain.model.route.reference.DifficultyLevel,
-    season: org.iesharia.senderismolanzarote.domain.model.route.reference.SeasonRoute,
-    status: org.iesharia.senderismolanzarote.domain.model.route.reference.RouteStatus
+    difficultyLevelModel: org.iesharia.senderismolanzarote.domain.model.route.reference.DifficultyLevelModel,
+    season: org.iesharia.senderismolanzarote.domain.model.route.reference.SeasonRouteModel,
+    status: org.iesharia.senderismolanzarote.domain.model.route.reference.RouteStatusModel
 ): RouteModel {
     return RouteModel(
         id = id,
         name = name,
-        difficultyLevel = difficultyLevel,
+        difficultyLevelModel = difficultyLevelModel,
         season = season,
         status = status,
         startLatitude = startLatitude,
@@ -34,7 +34,7 @@ fun RouteModel.toRouteEntity(): RouteEntity {
     return RouteEntity(
         id = id,
         name = name,
-        difficultyLevelId = difficultyLevel.id,
+        difficultyLevelId = difficultyLevelModel.id,
         seasonId = season.id,
         statusId = status.id,
         startLatitude = startLatitude,
