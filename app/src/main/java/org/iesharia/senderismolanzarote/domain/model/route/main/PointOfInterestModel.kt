@@ -1,13 +1,13 @@
 package org.iesharia.senderismolanzarote.domain.model.route.main
 
-import org.iesharia.senderismolanzarote.domain.model.route.reference.PoiType
+import org.iesharia.senderismolanzarote.domain.model.route.reference.PoiTypeModel
 import java.math.BigDecimal
 
-data class PointOfInterest(
+data class PointOfInterestModel(
     val id: Int = 0,
-    val routeId: Int,
+    val routeModel: RouteModel,
     val name: String,
-    val type: PoiType,
+    val type: PoiTypeModel,
     val description: String,
     val latitude: BigDecimal,
     val longitude: BigDecimal,

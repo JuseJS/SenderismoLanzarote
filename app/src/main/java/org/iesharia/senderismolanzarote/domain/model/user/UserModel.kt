@@ -2,7 +2,7 @@ package org.iesharia.senderismolanzarote.domain.model.user
 
 import java.time.LocalDateTime
 
-data class User(
+data class UserModel(
     val id: Int = 0,
     val username: String,
     val email: String,

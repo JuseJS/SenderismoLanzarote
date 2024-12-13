@@ -1,11 +1,11 @@
 package org.iesharia.senderismolanzarote.domain.model.route.main
 
-import org.iesharia.senderismolanzarote.domain.model.route.reference.ServiceType
+import org.iesharia.senderismolanzarote.domain.model.route.reference.ServiceTypeModel
 
-data class NearbyService(
+data class NearbyServiceModel(
     val id: Int = 0,
-    val routeId: Int,
-    val serviceType: ServiceType,
+    val routeModel: RouteModel,
+    val serviceTypeModel: ServiceTypeModel,
     val name: String,
     val description: String,
     val distanceMeters: Int,
