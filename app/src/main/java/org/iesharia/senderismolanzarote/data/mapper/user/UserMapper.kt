@@ -2,8 +2,11 @@ package org.iesharia.senderismolanzarote.data.mapper.user
 
 import org.iesharia.senderismolanzarote.data.database.entity.user.UserEntity
 import org.iesharia.senderismolanzarote.domain.model.user.UserModel
+import org.iesharia.senderismolanzarote.domain.model.user.UserRoleModel
 
-fun UserEntity.toUser(): UserModel {
+fun UserEntity.toUser(
+    roleModel: UserRoleModel
+): UserModel {
     return UserModel(
         id = id,
         username = username,
@@ -11,8 +14,9 @@ fun UserEntity.toUser(): UserModel {
         firstName = firstName,
         lastName = lastName,
         registrationDate = registrationDate,
-        roleId = rolId,
-        profileImage = profileImage
+        roleModel = roleModel,
+        profileImage = profileImage,
+        passwordHash = passwordHash
     )
 }
 
@@ -25,8 +29,8 @@ fun UserModel.toUserEntity(): UserEntity {
         firstName = firstName,
         lastName = lastName,
         registrationDate = registrationDate,
-        rolId = roleId,
+        rolId = roleModel.id,
         profileImage = profileImage,
-        passwordHash = "" // Este campo debe ser manejado en la capa del repositorio
+        passwordHash = passwordHash
     )
 }

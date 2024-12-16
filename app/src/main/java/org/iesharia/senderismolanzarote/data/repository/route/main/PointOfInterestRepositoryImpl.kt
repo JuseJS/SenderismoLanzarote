@@ -10,7 +10,9 @@ import org.iesharia.senderismolanzarote.domain.repository.route.main.PointOfInte
 import org.iesharia.senderismolanzarote.domain.repository.route.main.RouteRepository
 import org.iesharia.senderismolanzarote.domain.repository.route.reference.PoiTypeRepository
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class PointOfInterestRepositoryImpl @Inject constructor(
     private val pointOfInterestDao: PointOfInterestDao,
     private val routeRepository: RouteRepository,

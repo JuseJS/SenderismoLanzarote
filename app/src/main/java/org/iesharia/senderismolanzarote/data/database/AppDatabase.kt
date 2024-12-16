@@ -16,7 +16,6 @@ import org.iesharia.senderismolanzarote.data.database.entity.user.*
         // Entidades principales de rutas
         RouteEntity::class,
         ActivityRecordEntity::class,
-        NearbyServiceEntity::class,
         PointOfInterestEntity::class,
 
         // Entidades de referencia de rutas
@@ -24,7 +23,6 @@ import org.iesharia.senderismolanzarote.data.database.entity.user.*
         PoiTypeEntity::class,
         RouteStatusEntity::class,
         SeasonRouteEntity::class,
-        ServiceTypeEntity::class,
 
         // Entidades de usuario
         UserEntity::class,
@@ -32,7 +30,7 @@ import org.iesharia.senderismolanzarote.data.database.entity.user.*
         UserPreferencesEntity::class,
         FavoriteRouteEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -40,7 +38,6 @@ abstract class AppDatabase : RoomDatabase() {
     // DAOs principales de rutas
     abstract val routeDao: RouteDao
     abstract val activityRecordDao: ActivityRecordDao
-    abstract val nearbyServiceDao: NearbyServiceDao
     abstract val pointOfInterestDao: PointOfInterestDao
 
     // DAOs de referencia de rutas
@@ -48,7 +45,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val poiTypeDao: PoiTypeDao
     abstract val routeStatusDao: RouteStatusDao
     abstract val seasonRouteDao: SeasonRouteDao
-    abstract val serviceTypeDao: ServiceTypeDao
 
     // DAOs de usuario
     abstract val userDao: UserDao

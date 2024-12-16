@@ -30,12 +30,6 @@ abstract class RepositoryModule {
 
     @Binds
     @Singleton
-    abstract fun bindNearbyServiceRepository(
-        impl: NearbyServiceRepositoryImpl
-    ): NearbyServiceRepository
-
-    @Binds
-    @Singleton
     abstract fun bindPointOfInterestRepository(
         impl: PointOfInterestRepositoryImpl
     ): PointOfInterestRepository
@@ -63,12 +57,6 @@ abstract class RepositoryModule {
     abstract fun bindSeasonRouteRepository(
         impl: SeasonRouteRepositoryImpl
     ): SeasonRouteRepository
-
-    @Binds
-    @Singleton
-    abstract fun bindServiceTypeRepository(
-        impl: ServiceTypeRepositoryImpl
-    ): ServiceTypeRepository
 
     @Binds
     @Singleton

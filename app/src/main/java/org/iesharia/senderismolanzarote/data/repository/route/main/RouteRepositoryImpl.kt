@@ -12,7 +12,9 @@ import org.iesharia.senderismolanzarote.domain.repository.route.reference.RouteS
 import org.iesharia.senderismolanzarote.domain.repository.route.reference.SeasonRouteRepository
 import java.math.BigDecimal
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class RouteRepositoryImpl @Inject constructor(
     private val routeDao: RouteDao,
     private val difficultyLevelRepository: DifficultyLevelRepository,
