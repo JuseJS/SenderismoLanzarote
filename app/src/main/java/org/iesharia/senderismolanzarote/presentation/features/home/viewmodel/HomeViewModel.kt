@@ -2,9 +2,10 @@ package org.iesharia.senderismolanzarote.presentation.features.home.viewmodel
 
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.iesharia.senderismolanzarote.data.handler.ErrorHandler
+import org.iesharia.senderismolanzarote.data.logger.ErrorLogger
 import org.iesharia.senderismolanzarote.domain.model.route.main.RouteModel
 import org.iesharia.senderismolanzarote.domain.repository.route.main.RouteRepository
 import org.iesharia.senderismolanzarote.domain.repository.user.UserPreferencesRepository
@@ -16,81 +17,70 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val routeRepository: RouteRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
-) : BaseViewModel() {
+    private val userPreferencesRepository: UserPreferencesRepository,
+    errorHandler: ErrorHandler,
+    errorLogger: ErrorLogger
+) : BaseViewModel(errorHandler, errorLogger) {
+
+    private val _allRoutes = MutableStateFlow<UiState<List<RouteModel>>>(UiState.Initial)
+    private val _suggestedRoutes = MutableStateFlow<UiState<List<RouteModel>>>(UiState.Initial)
+    private val _activeRoute = MutableStateFlow<UiState<RouteModel?>>(UiState.Initial)
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState = _uiState.asStateFlow()
 
     init {
         loadRoutes()
+        observeRoutes()
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private fun loadRoutes() {
+    private fun observeRoutes() {
         viewModelScope.launch {
-            // Cargar todas las rutas
-            _uiState.update { it.copy(allRoutes = UiState.Loading) }
-            try {
-                routeRepository.getAllRoutes()
-                    .collect { routes ->
-                        _uiState.update {
-                            it.copy(allRoutes = UiState.Success(routes))
-                        }
-                    }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(allRoutes = handleError<List<RouteModel>>(e))
-                }
+            combine(_allRoutes, _suggestedRoutes, _activeRoute) { allRoutes, suggestedRoutes, activeRoute ->
+                HomeUiState(
+                    allRoutes = allRoutes,
+                    suggestedRoutes = suggestedRoutes,
+                    activeRoute = activeRoute
+                )
+            }.collect { state ->
+                _uiState.value = state
             }
+        }
+    }
 
-            // Cargar rutas sugeridas
-            _uiState.update { it.copy(suggestedRoutes = UiState.Loading) }
-            try {
-                userPreferencesRepository.getAllPreferences()
-                    .flatMapLatest { preferences ->
-                        if (preferences.isEmpty()) {
-                            flowOf(emptyList())
-                        } else {
-                            val userPrefs = preferences.first()
-                            routeRepository.getRoutesByPreferences(
-                                maxDifficulty = userPrefs.preferredDifficultyLevel.id,
-                                maxDistance = userPrefs.maxDistanceKm,
-                                maxDurationMinutes = userPrefs.maxDurationMinutes
-                            )
-                        }
-                    }
-                    .collect { routes ->
-                        _uiState.update {
-                            it.copy(suggestedRoutes = UiState.Success(routes))
-                        }
-                    }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(suggestedRoutes = handleError<List<RouteModel>>(e))
-                }
+    private fun loadRoutes() {
+        handleLoadOperation(_allRoutes) {
+            routeRepository.getAllRoutes().first()
+        }
+
+        handleLoadOperation(_suggestedRoutes) {
+            loadSuggestedRoutes()
+        }
+    }
+
+    private suspend fun loadSuggestedRoutes(): List<RouteModel> {
+        return userPreferencesRepository.getAllPreferences().first().let { preferences ->
+            if (preferences.isEmpty()) {
+                emptyList()
+            } else {
+                val userPrefs = preferences.first()
+                routeRepository.getRoutesByPreferences(
+                    maxDifficulty = userPrefs.preferredDifficultyLevel.id,
+                    maxDistance = userPrefs.maxDistanceKm,
+                    maxDurationMinutes = userPrefs.maxDurationMinutes
+                ).first()
             }
         }
     }
 
     fun setActiveRoute(routeId: Int) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(activeRoute = UiState.Loading) }
-            try {
-                val route = routeRepository.getRouteById(routeId)
-                _uiState.update {
-                    it.copy(activeRoute = UiState.Success(route))
-                }
-            } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(activeRoute = handleError<RouteModel?>(e))
-                }
-            }
+        handleLoadOperation(_activeRoute) {
+            routeRepository.getRouteById(routeId) ?: throw Exception("Ruta no encontrada")
         }
     }
 
     fun clearActiveRoute() {
-        _uiState.update { it.copy(activeRoute = UiState.Success(null)) }
+        _activeRoute.value = UiState.Success(null)
     }
 
     fun refreshRoutes() {

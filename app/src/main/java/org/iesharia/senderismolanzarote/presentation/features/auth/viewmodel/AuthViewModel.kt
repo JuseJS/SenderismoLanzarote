@@ -5,6 +5,9 @@ import at.favre.lib.crypto.bcrypt.BCrypt
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.iesharia.senderismolanzarote.data.handler.ErrorHandler
+import org.iesharia.senderismolanzarote.data.logger.ErrorLogger
+import org.iesharia.senderismolanzarote.data.mapper.error.toErrorModel
 import org.iesharia.senderismolanzarote.data.repository.auth.AuthRepository
 import org.iesharia.senderismolanzarote.domain.model.user.UserModel
 import org.iesharia.senderismolanzarote.domain.repository.user.UserRepository
@@ -19,63 +22,78 @@ import javax.inject.Inject
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val userRepository: UserRepository,
-    private val userRoleRepository: UserRoleRepository
-) : BaseViewModel() {
+    private val userRoleRepository: UserRoleRepository,
+    errorHandler: ErrorHandler,
+    errorLogger: ErrorLogger
+) : BaseViewModel(errorHandler, errorLogger) {
+
+    private val _authState = MutableStateFlow<UiState<UserModel>>(UiState.Initial)
+    private val _registerState = MutableStateFlow<UiState<Unit>>(UiState.Initial)
+    private val _isAuthLoading = MutableStateFlow(true)
+    private val _logoutComplete = MutableStateFlow(false)
+    private val _isLogin = MutableStateFlow(true)
+
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val _isAuthLoading = MutableStateFlow(true)
     val isAuthLoading = _isAuthLoading.asStateFlow()
-    private val _logoutComplete = MutableStateFlow(false)
     val logoutComplete = _logoutComplete.asStateFlow()
-
     val isAuthenticated = authRepository.isAuthenticated
 
     init {
-        // Verificar sesión existente
+        observeAuthStates()
+        checkExistingSession()
+    }
+
+    private fun observeAuthStates() {
         viewModelScope.launch {
-            _isAuthLoading.value = true
-            authRepository.currentSession.collect { session ->
-                session?.let {
-                    try {
-                        if (authRepository.validateSession(it.token)) {
-                            val user = userRepository.getUserById(it.userId)
-                            user?.let { validUser ->
-                                _uiState.update { state ->
-                                    state.copy(authState = UiState.Success(validUser))
-                                }
-                            }
-                        } else {
-                            authRepository.clearAuthSession()
-                        }
-                    } catch (e: Exception) {
-                        handleAuthError(e)
-                    }
-                }
-                _isAuthLoading.value = false
+            combine(
+                _authState,
+                _registerState,
+                _isLogin
+            ) { authState, registerState, isLogin ->
+                AuthUiState(
+                    isLogin = isLogin,
+                    authState = authState,
+                    registerState = registerState
+                )
+            }.collect { state ->
+                _uiState.value = state
             }
         }
     }
 
-    fun login(email: String, password: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(authState = UiState.Loading) }
+    private fun checkExistingSession() {
+        handleLoadOperation(_authState) {
+            _isAuthLoading.value = true
             try {
-                val user = userRepository.getUserByEmail(email)
-                if (user != null && verifyPassword(password, user.passwordHash)) {
-                    val sessionToken = UUID.randomUUID().toString()
-                    authRepository.saveAuthSession(user.id, sessionToken)
-                    _uiState.update {
-                        it.copy(authState = UiState.Success(user))
-                    }
-                } else {
-                    _uiState.update {
-                        it.copy(authState = UiState.Error("Credenciales inválidas"))
+                authRepository.currentSession.first()?.let { session ->
+                    if (authRepository.validateSession(session.token)) {
+                        userRepository.getUserById(session.userId)
+                            ?: throw Exception("Usuario no encontrado")
+                    } else {
+                        authRepository.clearAuthSession()
+                        null
                     }
                 }
-            } catch (e: Exception) {
-                handleAuthError(e)
+            } finally {
+                _isAuthLoading.value = false
+            } as UserModel
+        }
+    }
+
+    fun login(email: String, password: String) {
+        handleLoadOperation(_authState) {
+            val user = userRepository.getUserByEmail(email)
+                ?: throw Exception("Credenciales inválidas")
+
+            if (!verifyPassword(password, user.passwordHash)) {
+                throw Exception("Credenciales inválidas")
             }
+
+            val sessionToken = UUID.randomUUID().toString()
+            authRepository.saveAuthSession(user.id, sessionToken)
+            user
         }
     }
 
@@ -86,45 +104,30 @@ class AuthViewModel @Inject constructor(
         firstName: String,
         lastName: String
     ) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(registerState = UiState.Loading) }
-            try {
-                // Verificar email existente
-                userRepository.getUserByEmail(email)?.let {
-                    _uiState.update {
-                        it.copy(registerState = UiState.Error("El email ya está registrado"))
-                    }
-                    return@launch
-                }
+        handleLoadOperation(_registerState) {
+            userRepository.getUserByEmail(email)?.let {
+                throw Exception("El email ya está registrado")
+            }
 
-                // Obtener rol por defecto
-                val userRole = userRoleRepository.getUserRoleById(1)
-                    ?: throw Exception("Role no encontrado")
+            val userRole = userRoleRepository.getUserRoleById(1)
+                ?: throw Exception("Role no encontrado")
 
-                // Crear nuevo usuario
-                val hashedPassword = hashPassword(password)
-                val newUser = UserModel(
-                    username = username,
-                    email = email,
-                    firstName = firstName,
-                    lastName = lastName,
-                    roleModel = userRole,
-                    passwordHash = hashedPassword
-                )
+            val hashedPassword = hashPassword(password)
+            val newUser = UserModel(
+                username = username,
+                email = email,
+                firstName = firstName,
+                lastName = lastName,
+                roleModel = userRole,
+                passwordHash = hashedPassword
+            )
 
-                val userId = userRepository.insertUser(newUser)
-                if (userId > 0) {
-                    // Crear sesión
-                    val sessionToken = UUID.randomUUID().toString()
-                    authRepository.saveAuthSession(userId.toInt(), sessionToken)
-                    _uiState.update {
-                        it.copy(registerState = UiState.Success(Unit))
-                    }
-                } else {
-                    throw Exception("Error al crear usuario")
-                }
-            } catch (e: Exception) {
-                handleAuthError(e)
+            val userId = userRepository.insertUser(newUser)
+            if (userId > 0) {
+                val sessionToken = UUID.randomUUID().toString()
+                authRepository.saveAuthSession(userId.toInt(), sessionToken)
+            } else {
+                throw Exception("Error al crear usuario")
             }
         }
     }
@@ -134,12 +137,19 @@ class AuthViewModel @Inject constructor(
             try {
                 _logoutComplete.value = false
                 authRepository.clearAuthSession()
-                _uiState.update { AuthUiState() }
+                resetStates()
                 _logoutComplete.value = true
             } catch (e: Exception) {
-                handleAuthError(e)
+                val error = e.toErrorModel()
+                errorLogger.logError(error)
             }
         }
+    }
+
+    private fun resetStates() {
+        _authState.value = UiState.Initial
+        _registerState.value = UiState.Initial
+        _isLogin.value = true
     }
 
     fun resetLogout() {
@@ -147,31 +157,13 @@ class AuthViewModel @Inject constructor(
     }
 
     fun clearError() {
-        _uiState.update { currentState ->
-            currentState.copy(
-                authState = UiState.Initial,
-                registerState = UiState.Initial
-            )
-        }
+        _authState.value = UiState.Initial
+        _registerState.value = UiState.Initial
     }
 
     fun setLoginMode(isLogin: Boolean) {
-        _uiState.update { currentState ->
-            currentState.copy(
-                isLogin = isLogin,
-                authState = UiState.Initial,
-                registerState = UiState.Initial
-            )
-        }
-    }
-
-    private fun handleAuthError(error: Exception) {
-        _uiState.update {
-            it.copy(
-                authState = UiState.Error(error.message ?: "Error desconocido"),
-                registerState = UiState.Initial
-            )
-        }
+        _isLogin.value = isLogin
+        clearError()
     }
 
     private fun hashPassword(password: String): String {

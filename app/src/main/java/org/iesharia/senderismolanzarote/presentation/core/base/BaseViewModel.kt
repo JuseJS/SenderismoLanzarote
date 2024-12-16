@@ -1,25 +1,32 @@
 package org.iesharia.senderismolanzarote.presentation.core.base
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import org.iesharia.senderismolanzarote.data.handler.ErrorHandler
+import org.iesharia.senderismolanzarote.data.logger.ErrorLogger
+import org.iesharia.senderismolanzarote.data.mapper.error.toErrorModel
 
-abstract class BaseViewModel : ViewModel() {
-    protected fun <T> handleError(
-        error: Throwable,
-        defaultMessage: String = "Error desconocido"
-    ): UiState.Error {
-        return UiState.Error(error.message ?: defaultMessage)
-    }
+abstract class BaseViewModel(
+    protected val errorHandler: ErrorHandler,
+    protected val errorLogger: ErrorLogger
+) : ViewModel() {
 
-    protected fun <T> MutableStateFlow<UiState<T>>.setLoading() {
-        value = UiState.Loading
-    }
-
-    protected fun <T> MutableStateFlow<UiState<T>>.setSuccess(data: T) {
-        value = UiState.Success(data)
-    }
-
-    protected fun <T> MutableStateFlow<UiState<T>>.setError(message: String) {
-        value = UiState.Error(message)
+    protected fun <T> handleLoadOperation(
+        state: MutableStateFlow<UiState<T>>,
+        loadData: suspend () -> T
+    ) {
+        viewModelScope.launch {
+            state.value = UiState.Loading
+            try {
+                val result = loadData()
+                state.value = UiState.Success(result)
+            } catch (e: Exception) {
+                val error = e.toErrorModel()
+                errorLogger.logError(error)
+                state.value = UiState.Error(error.message)
+            }
+        }
     }
 }
