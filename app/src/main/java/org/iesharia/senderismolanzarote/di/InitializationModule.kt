@@ -1,0 +1,4 @@
+package org.iesharia.senderismolanzarote.di
+
+class InitializationModule {
+}
