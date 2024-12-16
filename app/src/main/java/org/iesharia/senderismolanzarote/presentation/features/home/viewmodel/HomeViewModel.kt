@@ -1,21 +1,23 @@
-package org.iesharia.senderismolanzarote.presentation.home.viewmodel
+package org.iesharia.senderismolanzarote.presentation.features.home.viewmodel
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import org.iesharia.senderismolanzarote.domain.model.route.main.RouteModel
 import org.iesharia.senderismolanzarote.domain.repository.route.main.RouteRepository
 import org.iesharia.senderismolanzarote.domain.repository.user.UserPreferencesRepository
-import org.iesharia.senderismolanzarote.presentation.home.state.*
+import org.iesharia.senderismolanzarote.presentation.core.base.BaseViewModel
+import org.iesharia.senderismolanzarote.presentation.core.base.UiState
+import org.iesharia.senderismolanzarote.presentation.features.home.state.HomeUiState
 import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val routeRepository: RouteRepository,
     private val userPreferencesRepository: UserPreferencesRepository
-) : ViewModel() {
+) : BaseViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState = _uiState.asStateFlow()
@@ -28,22 +30,22 @@ class HomeViewModel @Inject constructor(
     private fun loadRoutes() {
         viewModelScope.launch {
             // Cargar todas las rutas
-            _uiState.update { it.copy(allRoutes = AllRoutesState.Loading) }
+            _uiState.update { it.copy(allRoutes = UiState.Loading) }
             try {
                 routeRepository.getAllRoutes()
                     .collect { routes ->
                         _uiState.update {
-                            it.copy(allRoutes = AllRoutesState.Success(routes))
+                            it.copy(allRoutes = UiState.Success(routes))
                         }
                     }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(allRoutes = AllRoutesState.Error(e.message ?: "Error desconocido"))
+                    it.copy(allRoutes = handleError<List<RouteModel>>(e))
                 }
             }
 
-            // Cargar rutas sugeridas basadas en preferencias
-            _uiState.update { it.copy(suggestedRoutes = SuggestedRoutesState.Loading) }
+            // Cargar rutas sugeridas
+            _uiState.update { it.copy(suggestedRoutes = UiState.Loading) }
             try {
                 userPreferencesRepository.getAllPreferences()
                     .flatMapLatest { preferences ->
@@ -60,12 +62,12 @@ class HomeViewModel @Inject constructor(
                     }
                     .collect { routes ->
                         _uiState.update {
-                            it.copy(suggestedRoutes = SuggestedRoutesState.Success(routes))
+                            it.copy(suggestedRoutes = UiState.Success(routes))
                         }
                     }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(suggestedRoutes = SuggestedRoutesState.Error(e.message ?: "Error desconocido"))
+                    it.copy(suggestedRoutes = handleError<List<RouteModel>>(e))
                 }
             }
         }
@@ -73,26 +75,22 @@ class HomeViewModel @Inject constructor(
 
     fun setActiveRoute(routeId: Int) {
         viewModelScope.launch {
-            _uiState.update { it.copy(activeRoute = ActiveRouteState.Loading) }
+            _uiState.update { it.copy(activeRoute = UiState.Loading) }
             try {
                 val route = routeRepository.getRouteById(routeId)
-                if (route != null) {
-                    _uiState.update { it.copy(activeRoute = ActiveRouteState.Success(route)) }
-                } else {
-                    _uiState.update {
-                        it.copy(activeRoute = ActiveRouteState.Error("Ruta no encontrada"))
-                    }
+                _uiState.update {
+                    it.copy(activeRoute = UiState.Success(route))
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(activeRoute = ActiveRouteState.Error(e.message ?: "Error desconocido"))
+                    it.copy(activeRoute = handleError<RouteModel?>(e))
                 }
             }
         }
     }
 
     fun clearActiveRoute() {
-        _uiState.update { it.copy(activeRoute = ActiveRouteState.None) }
+        _uiState.update { it.copy(activeRoute = UiState.Success(null)) }
     }
 
     fun refreshRoutes() {
