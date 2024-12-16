@@ -1,6 +1,5 @@
-package org.iesharia.senderismolanzarote.presentation.auth.viewmodel
+package org.iesharia.senderismolanzarote.presentation.features.auth.viewmodel
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import at.favre.lib.crypto.bcrypt.BCrypt
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,40 +9,72 @@ import org.iesharia.senderismolanzarote.data.repository.auth.AuthRepository
 import org.iesharia.senderismolanzarote.domain.model.user.UserModel
 import org.iesharia.senderismolanzarote.domain.repository.user.UserRepository
 import org.iesharia.senderismolanzarote.domain.repository.user.UserRoleRepository
-import org.iesharia.senderismolanzarote.presentation.auth.state.AuthState
-import org.iesharia.senderismolanzarote.presentation.auth.state.RegisterState
+import org.iesharia.senderismolanzarote.presentation.core.base.BaseViewModel
+import org.iesharia.senderismolanzarote.presentation.core.base.UiState
+import org.iesharia.senderismolanzarote.presentation.features.auth.state.AuthUiState
 import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
 class AuthViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val userRoleRepository: UserRoleRepository,
-    private val userRepository: UserRepository
-) : ViewModel() {
-    private val _authState = MutableStateFlow<AuthState>(AuthState.Initial)
-    val authState = _authState.asStateFlow()
+    private val userRepository: UserRepository,
+    private val userRoleRepository: UserRoleRepository
+) : BaseViewModel() {
+    private val _uiState = MutableStateFlow(AuthUiState())
+    val uiState = _uiState.asStateFlow()
 
-    private val _registerState = MutableStateFlow<RegisterState>(RegisterState.Initial)
-    val registerState = _registerState.asStateFlow()
+    private val _isAuthLoading = MutableStateFlow(true)
+    val isAuthLoading = _isAuthLoading.asStateFlow()
+    private val _logoutComplete = MutableStateFlow(false)
+    val logoutComplete = _logoutComplete.asStateFlow()
 
     val isAuthenticated = authRepository.isAuthenticated
 
+    init {
+        // Verificar sesión existente
+        viewModelScope.launch {
+            _isAuthLoading.value = true
+            authRepository.currentSession.collect { session ->
+                session?.let {
+                    try {
+                        if (authRepository.validateSession(it.token)) {
+                            val user = userRepository.getUserById(it.userId)
+                            user?.let { validUser ->
+                                _uiState.update { state ->
+                                    state.copy(authState = UiState.Success(validUser))
+                                }
+                            }
+                        } else {
+                            authRepository.clearAuthSession()
+                        }
+                    } catch (e: Exception) {
+                        handleAuthError(e)
+                    }
+                }
+                _isAuthLoading.value = false
+            }
+        }
+    }
+
     fun login(email: String, password: String) {
         viewModelScope.launch {
-            _authState.value = AuthState.Loading
+            _uiState.update { it.copy(authState = UiState.Loading) }
             try {
                 val user = userRepository.getUserByEmail(email)
                 if (user != null && verifyPassword(password, user.passwordHash)) {
-                    // Generar un token de sesión simple (en producción usarías JWT u otro sistema seguro)
                     val sessionToken = UUID.randomUUID().toString()
                     authRepository.saveAuthSession(user.id, sessionToken)
-                    _authState.value = AuthState.Success(user)
+                    _uiState.update {
+                        it.copy(authState = UiState.Success(user))
+                    }
                 } else {
-                    _authState.value = AuthState.Error("Credenciales inválidas")
+                    _uiState.update {
+                        it.copy(authState = UiState.Error("Credenciales inválidas"))
+                    }
                 }
             } catch (e: Exception) {
-                _authState.value = AuthState.Error(e.message ?: "Error desconocido")
+                handleAuthError(e)
             }
         }
     }
@@ -56,21 +87,21 @@ class AuthViewModel @Inject constructor(
         lastName: String
     ) {
         viewModelScope.launch {
-            _registerState.value = RegisterState.Loading
+            _uiState.update { it.copy(registerState = UiState.Loading) }
             try {
-                // Verificar si el email ya está registrado
-                val existingUser = userRepository.getUserByEmail(email)
-                if (existingUser != null) {
-                    _registerState.value = RegisterState.Error("El email ya está registrado")
+                // Verificar email existente
+                userRepository.getUserByEmail(email)?.let {
+                    _uiState.update {
+                        it.copy(registerState = UiState.Error("El email ya está registrado"))
+                    }
                     return@launch
                 }
 
-                val userRole = userRoleRepository.getUserRoleById(1) // Role por defecto
-                if (userRole == null) {
-                    _registerState.value = RegisterState.Error("Role no encontrado")
-                    return@launch
-                }
+                // Obtener rol por defecto
+                val userRole = userRoleRepository.getUserRoleById(1)
+                    ?: throw Exception("Role no encontrado")
 
+                // Crear nuevo usuario
                 val hashedPassword = hashPassword(password)
                 val newUser = UserModel(
                     username = username,
@@ -83,23 +114,63 @@ class AuthViewModel @Inject constructor(
 
                 val userId = userRepository.insertUser(newUser)
                 if (userId > 0) {
-                    // Crear una sesión automáticamente después del registro
+                    // Crear sesión
                     val sessionToken = UUID.randomUUID().toString()
                     authRepository.saveAuthSession(userId.toInt(), sessionToken)
-                    _registerState.value = RegisterState.Success
+                    _uiState.update {
+                        it.copy(registerState = UiState.Success(Unit))
+                    }
                 } else {
-                    _registerState.value = RegisterState.Error("Error al crear usuario")
+                    throw Exception("Error al crear usuario")
                 }
             } catch (e: Exception) {
-                _registerState.value = RegisterState.Error(e.message ?: "Error desconocido")
+                handleAuthError(e)
             }
         }
     }
 
     fun logout() {
         viewModelScope.launch {
-            authRepository.clearAuthSession()
-            _authState.value = AuthState.Initial
+            try {
+                _logoutComplete.value = false
+                authRepository.clearAuthSession()
+                _uiState.update { AuthUiState() }
+                _logoutComplete.value = true
+            } catch (e: Exception) {
+                handleAuthError(e)
+            }
+        }
+    }
+
+    fun resetLogout() {
+        _logoutComplete.value = false
+    }
+
+    fun clearError() {
+        _uiState.update { currentState ->
+            currentState.copy(
+                authState = UiState.Initial,
+                registerState = UiState.Initial
+            )
+        }
+    }
+
+    fun setLoginMode(isLogin: Boolean) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                isLogin = isLogin,
+                authState = UiState.Initial,
+                registerState = UiState.Initial
+            )
+        }
+    }
+
+    private fun handleAuthError(error: Exception) {
+        _uiState.update {
+            it.copy(
+                authState = UiState.Error(error.message ?: "Error desconocido"),
+                registerState = UiState.Initial
+            )
         }
     }
 
