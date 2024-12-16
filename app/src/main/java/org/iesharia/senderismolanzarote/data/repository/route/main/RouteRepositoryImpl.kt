@@ -3,6 +3,7 @@ package org.iesharia.senderismolanzarote.data.repository.route.main
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.iesharia.senderismolanzarote.data.database.dao.route.main.RouteDao
+import org.iesharia.senderismolanzarote.data.handler.ErrorHandler
 import org.iesharia.senderismolanzarote.data.mapper.route.main.toRoute
 import org.iesharia.senderismolanzarote.data.mapper.route.main.toRouteEntity
 import org.iesharia.senderismolanzarote.domain.model.route.main.RouteModel
@@ -19,12 +20,30 @@ class RouteRepositoryImpl @Inject constructor(
     private val routeDao: RouteDao,
     private val difficultyLevelRepository: DifficultyLevelRepository,
     private val seasonRouteRepository: SeasonRouteRepository,
-    private val routeStatusRepository: RouteStatusRepository
+    private val routeStatusRepository: RouteStatusRepository,
+    private val errorHandler: ErrorHandler
 ) : RouteRepository {
 
     override fun getAllRoutes(): Flow<List<RouteModel>> {
         return routeDao.getAllRoutes().map { entities ->
             entities.mapNotNull { entity ->
+                errorHandler.handleError {
+                    val difficulty = difficultyLevelRepository.getDifficultyLevelById(entity.difficultyLevelId)
+                    val season = seasonRouteRepository.getSeasonRouteById(entity.seasonId)
+                    val status = routeStatusRepository.getRouteStatusById(entity.statusId)
+
+                    if (difficulty != null && season != null && status != null) {
+                        entity.toRoute(difficulty, season, status)
+                    } else null
+                }.getOrNull()
+            }
+        }
+    }
+
+    override suspend fun getRouteById(routeId: Int): RouteModel? {
+        return errorHandler.handleError {
+            val entity = routeDao.getRouteById(routeId)
+            if (entity != null) {
                 val difficulty = difficultyLevelRepository.getDifficultyLevelById(entity.difficultyLevelId)
                 val season = seasonRouteRepository.getSeasonRouteById(entity.seasonId)
                 val status = routeStatusRepository.getRouteStatusById(entity.statusId)
@@ -32,22 +51,8 @@ class RouteRepositoryImpl @Inject constructor(
                 if (difficulty != null && season != null && status != null) {
                     entity.toRoute(difficulty, season, status)
                 } else null
-            }
-        }
-    }
-
-    override suspend fun getRouteById(routeId: Int): RouteModel? {
-        val entity = routeDao.getRouteById(routeId)
-        if (entity != null) {
-            val difficulty = difficultyLevelRepository.getDifficultyLevelById(entity.difficultyLevelId)
-            val season = seasonRouteRepository.getSeasonRouteById(entity.seasonId)
-            val status = routeStatusRepository.getRouteStatusById(entity.statusId)
-
-            if (difficulty != null && season != null && status != null) {
-                return entity.toRoute(difficulty, season, status)
-            }
-        }
-        return null
+            } else null
+        }.getOrNull()
     }
 
     override fun getRoutesByPreferences(
@@ -58,26 +63,34 @@ class RouteRepositoryImpl @Inject constructor(
         return routeDao.getRoutesByPreferences(maxDifficulty, maxDistance, maxDurationMinutes)
             .map { entities ->
                 entities.mapNotNull { entity ->
-                    val difficulty = difficultyLevelRepository.getDifficultyLevelById(entity.difficultyLevelId)
-                    val season = seasonRouteRepository.getSeasonRouteById(entity.seasonId)
-                    val status = routeStatusRepository.getRouteStatusById(entity.statusId)
+                    errorHandler.handleError {
+                        val difficulty = difficultyLevelRepository.getDifficultyLevelById(entity.difficultyLevelId)
+                        val season = seasonRouteRepository.getSeasonRouteById(entity.seasonId)
+                        val status = routeStatusRepository.getRouteStatusById(entity.statusId)
 
-                    if (difficulty != null && season != null && status != null) {
-                        entity.toRoute(difficulty, season, status)
-                    } else null
+                        if (difficulty != null && season != null && status != null) {
+                            entity.toRoute(difficulty, season, status)
+                        } else null
+                    }.getOrNull()
                 }
             }
     }
 
     override suspend fun insertRoute(routeModel: RouteModel) {
-        routeDao.insertRoute(routeModel.toRouteEntity())
+        errorHandler.handleError {
+            routeDao.insertRoute(routeModel.toRouteEntity())
+        }
     }
 
     override suspend fun updateRoute(routeModel: RouteModel) {
-        routeDao.updateRoute(routeModel.toRouteEntity())
+        errorHandler.handleError {
+            routeDao.updateRoute(routeModel.toRouteEntity())
+        }
     }
 
     override suspend fun deleteRoute(routeModel: RouteModel) {
-        routeDao.deleteRoute(routeModel.toRouteEntity())
+        errorHandler.handleError {
+            routeDao.deleteRoute(routeModel.toRouteEntity())
+        }
     }
 }
