@@ -10,7 +10,9 @@ import org.iesharia.senderismolanzarote.domain.repository.user.FavoriteRouteRepo
 import org.iesharia.senderismolanzarote.domain.repository.route.main.RouteRepository
 import org.iesharia.senderismolanzarote.domain.repository.user.UserRepository
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class FavoriteRouteRepositoryImpl @Inject constructor(
     private val favoriteRouteDao: FavoriteRouteDao,
     private val userRepository: UserRepository,

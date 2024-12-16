@@ -8,19 +8,24 @@ import org.iesharia.senderismolanzarote.data.mapper.user.toUserPreferencesEntity
 import org.iesharia.senderismolanzarote.domain.model.user.UserPreferencesModel
 import org.iesharia.senderismolanzarote.domain.repository.user.UserPreferencesRepository
 import org.iesharia.senderismolanzarote.domain.repository.user.UserRepository
+import org.iesharia.senderismolanzarote.domain.repository.route.reference.DifficultyLevelRepository
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class UserPreferencesRepositoryImpl @Inject constructor(
     private val userPreferencesDao: UserPreferencesDao,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val difficultyLevelRepository: DifficultyLevelRepository
 ) : UserPreferencesRepository {
 
     override suspend fun getUserPreferences(userId: Int): UserPreferencesModel? {
         val preferencesEntity = userPreferencesDao.getUserPreferences(userId)
         if (preferencesEntity != null) {
             val user = userRepository.getUserById(preferencesEntity.userId)
-            if (user != null) {
-                return preferencesEntity.toUserPreferences(user)
+            val difficultyLevel = difficultyLevelRepository.getDifficultyLevelById(preferencesEntity.preferredDifficulty)
+            if (user != null && difficultyLevel != null) {
+                return preferencesEntity.toUserPreferences(user, difficultyLevel)
             }
         }
         return null
@@ -30,7 +35,10 @@ class UserPreferencesRepositoryImpl @Inject constructor(
         return userPreferencesDao.getAllPreferences().map { entities ->
             entities.mapNotNull { entity ->
                 val user = userRepository.getUserById(entity.userId)
-                user?.let { entity.toUserPreferences(it) }
+                val difficultyLevel = difficultyLevelRepository.getDifficultyLevelById(entity.preferredDifficulty)
+                if (user != null && difficultyLevel != null) {
+                    entity.toUserPreferences(user, difficultyLevel)
+                } else null
             }
         }
     }

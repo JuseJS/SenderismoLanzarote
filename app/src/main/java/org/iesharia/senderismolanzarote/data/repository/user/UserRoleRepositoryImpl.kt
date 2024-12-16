@@ -8,7 +8,9 @@ import org.iesharia.senderismolanzarote.data.mapper.user.toUserRoleEntity
 import org.iesharia.senderismolanzarote.domain.model.user.UserRoleModel
 import org.iesharia.senderismolanzarote.domain.repository.user.UserRoleRepository
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class UserRoleRepositoryImpl @Inject constructor(
     private val userRoleDao: UserRoleDao
 ) : UserRoleRepository {
