@@ -1,4 +1,6 @@
 package org.iesharia.senderismolanzarote.domain.model.auth
 
-class AuthSession {
-}
+data class AuthSession(
+    val userId: Int,
+    val token: String
+)

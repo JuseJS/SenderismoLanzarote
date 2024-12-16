@@ -6,4 +6,5 @@ import org.iesharia.senderismolanzarote.domain.model.route.reference.PoiTypeMode
 interface PoiTypeRepository {
     fun getAllPoiTypes(): Flow<List<PoiTypeModel>>
     suspend fun getPoiTypeById(id: Int): PoiTypeModel?
+    suspend fun insertPoiType(poiType: PoiTypeModel)
 }

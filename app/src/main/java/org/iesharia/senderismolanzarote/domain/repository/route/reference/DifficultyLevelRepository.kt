@@ -6,4 +6,5 @@ import org.iesharia.senderismolanzarote.domain.model.route.reference.DifficultyL
 interface DifficultyLevelRepository {
     fun getAllDifficultyLevels(): Flow<List<DifficultyLevelModel>>
     suspend fun getDifficultyLevelById(id: Int): DifficultyLevelModel?
+    suspend fun insertDifficultyLevel(difficultyLevel: DifficultyLevelModel)
 }

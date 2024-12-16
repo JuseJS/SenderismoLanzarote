@@ -6,4 +6,5 @@ import org.iesharia.senderismolanzarote.domain.model.route.reference.SeasonRoute
 interface SeasonRouteRepository {
     fun getAllSeasonRoutes(): Flow<List<SeasonRouteModel>>
     suspend fun getSeasonRouteById(id: Int): SeasonRouteModel?
+    suspend fun insertSeasonRoute(seasonRoute: SeasonRouteModel)
 }

@@ -6,4 +6,5 @@ import org.iesharia.senderismolanzarote.domain.model.route.reference.RouteStatus
 interface RouteStatusRepository {
     fun getAllRouteStatuses(): Flow<List<RouteStatusModel>>
     suspend fun getRouteStatusById(id: Int): RouteStatusModel?
+    suspend fun insertRouteStatus(routeStatus: RouteStatusModel)
 }

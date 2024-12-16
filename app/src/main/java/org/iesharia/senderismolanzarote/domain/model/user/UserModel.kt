@@ -9,6 +9,7 @@ data class UserModel(
     val firstName: String,
     val lastName: String,
     val registrationDate: LocalDateTime = LocalDateTime.now(),
-    val roleId: Int,
-    val profileImage: String? = null
+    val roleModel: UserRoleModel,
+    val profileImage: String? = null,
+    val passwordHash: String = ""
 )
