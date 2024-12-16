@@ -11,4 +11,7 @@ interface RouteStatusDao {
 
     @Query("SELECT * FROM route_statuses WHERE id = :id")
     suspend fun getRouteStatusById(id: Int): RouteStatusEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRouteStatus(routeStatus: RouteStatusEntity)
 }

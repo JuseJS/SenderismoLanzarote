@@ -11,4 +11,7 @@ interface SeasonRouteDao {
 
     @Query("SELECT * FROM season_routes WHERE id = :id")
     suspend fun getSeasonRouteById(id: Int): SeasonRouteEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSeasonRoute(seasonRoute: SeasonRouteEntity)
 }

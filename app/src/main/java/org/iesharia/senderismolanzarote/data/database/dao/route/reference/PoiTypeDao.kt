@@ -11,4 +11,7 @@ interface PoiTypeDao {
 
     @Query("SELECT * FROM poi_types WHERE id = :id")
     suspend fun getPoiTypeById(id: Int): PoiTypeEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPoiType(poiType: PoiTypeEntity)
 }

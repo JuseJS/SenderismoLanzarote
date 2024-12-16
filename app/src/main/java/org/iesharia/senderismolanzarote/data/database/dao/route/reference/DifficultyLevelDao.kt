@@ -11,4 +11,7 @@ interface DifficultyLevelDao {
 
     @Query("SELECT * FROM difficulty_levels WHERE id = :id")
     suspend fun getDifficultyLevelById(id: Int): DifficultyLevelEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertDifficultyLevel(difficultyLevel: DifficultyLevelEntity)
 }

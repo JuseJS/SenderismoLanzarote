@@ -4,10 +4,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.iesharia.senderismolanzarote.data.database.dao.route.reference.PoiTypeDao
 import org.iesharia.senderismolanzarote.data.mapper.route.reference.toPoiType
+import org.iesharia.senderismolanzarote.data.mapper.route.reference.toPoiTypeEntity
 import org.iesharia.senderismolanzarote.domain.model.route.reference.PoiTypeModel
 import org.iesharia.senderismolanzarote.domain.repository.route.reference.PoiTypeRepository
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class PoiTypeRepositoryImpl @Inject constructor(
     private val poiTypeDao: PoiTypeDao
 ) : PoiTypeRepository {
@@ -20,5 +23,9 @@ class PoiTypeRepositoryImpl @Inject constructor(
 
     override suspend fun getPoiTypeById(id: Int): PoiTypeModel? {
         return poiTypeDao.getPoiTypeById(id)?.toPoiType()
+    }
+
+    override suspend fun insertPoiType(poiType: PoiTypeModel) {
+        poiTypeDao.insertPoiType(poiType.toPoiTypeEntity())
     }
 }
