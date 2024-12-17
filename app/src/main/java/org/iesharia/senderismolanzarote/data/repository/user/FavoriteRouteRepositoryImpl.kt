@@ -19,8 +19,8 @@ class FavoriteRouteRepositoryImpl @Inject constructor(
     private val routeRepository: RouteRepository
 ) : FavoriteRouteRepository {
 
-    override fun getUserFavoriteRoutes(userId: Int): Flow<List<FavoriteRouteModel>> {
-        return favoriteRouteDao.getUserFavoriteRoutes(userId).map { entities ->
+    override fun observeFavoriteRoutes(userId: Int): Flow<List<FavoriteRouteModel>> {
+        return favoriteRouteDao.observeFavoriteRoutes(userId).map { entities ->
             entities.mapNotNull { entity ->
                 val user = userRepository.getUserById(entity.userId)
                 val route = routeRepository.getRouteById(entity.routeId)
@@ -32,15 +32,28 @@ class FavoriteRouteRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun insertFavoriteRoute(favoriteRouteModel: FavoriteRouteModel) {
-        favoriteRouteDao.insertFavoriteRoute(favoriteRouteModel.toFavoriteRouteEntity())
+    override suspend fun getUserFavoriteRoutes(userId: Int): Flow<List<FavoriteRouteModel>> {
+        return favoriteRouteDao.getUserFavoriteRoutes(userId.toInt()).map { entities ->
+            entities.mapNotNull { entity ->
+                val user = userRepository.getUserById(entity.userId)
+                val route = routeRepository.getRouteById(entity.routeId)
+
+                if (user != null && route != null) {
+                    entity.toFavoriteRoute(user, route)
+                } else null
+            }
+        }
     }
 
-    override suspend fun deleteFavoriteRoute(favoriteRouteModel: FavoriteRouteModel) {
-        favoriteRouteDao.deleteFavoriteRoute(favoriteRouteModel.toFavoriteRouteEntity())
+    override suspend fun insertFavoriteRoute(favoriteRoute: FavoriteRouteModel) {
+        favoriteRouteDao.insertFavoriteRoute(favoriteRoute.toFavoriteRouteEntity())
+    }
+
+    override suspend fun deleteFavoriteRoute(favoriteRoute: FavoriteRouteModel) {
+        favoriteRouteDao.deleteFavoriteRoute(favoriteRoute.toFavoriteRouteEntity())
     }
 
     override suspend fun isRouteFavorite(userId: Int, routeId: Int): Boolean {
-        return favoriteRouteDao.isRouteFavorite(userId, routeId)
+        return favoriteRouteDao.isRouteFavorite(userId.toInt(), routeId)
     }
 }

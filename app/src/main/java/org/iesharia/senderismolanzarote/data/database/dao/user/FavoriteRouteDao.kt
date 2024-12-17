@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface FavoriteRouteDao {
     @Query("SELECT * FROM favorite_routes WHERE userId = :userId")
+    fun observeFavoriteRoutes(userId: Int): Flow<List<FavoriteRouteEntity>>
+
+    @Query("SELECT * FROM favorite_routes WHERE userId = :userId")
     fun getUserFavoriteRoutes(userId: Int): Flow<List<FavoriteRouteEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
