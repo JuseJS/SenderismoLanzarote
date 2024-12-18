@@ -12,6 +12,7 @@ composeBom = "2024.12.01"
 materialIconsExtended = "1.7.6"
 osmdroid = "6.1.20"
 osmdroidMapsforge = "6.1.20"
+play-services-location = "21.1.0"
 room = "2.7.0-alpha12"
 hilt = "2.53.1"
 hiltNavigation = "1.2.0"
@@ -45,6 +46,7 @@ androidx-activity-compose = { group = "androidx.activity", name = "activity-comp
 # Maps
 osmdroid = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
 osmdroid-mapsforge = { module = "org.osmdroid:osmdroid-mapsforge", version.ref = "osmdroidMapsforge" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "play-services-location" }
 
 # Room
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
