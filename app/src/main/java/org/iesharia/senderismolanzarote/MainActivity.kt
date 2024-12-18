@@ -2,8 +2,10 @@ package org.iesharia.senderismolanzarote
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -24,6 +26,8 @@ import org.iesharia.senderismolanzarote.presentation.common.theme.ThemeViewModel
 import org.iesharia.senderismolanzarote.presentation.core.components.DrawerMenu
 import org.iesharia.senderismolanzarote.presentation.features.auth.viewmodel.AuthViewModel
 import org.iesharia.senderismolanzarote.presentation.initialization.viewmodel.InitializationViewModel
+import org.osmdroid.config.Configuration
+import java.io.File
 
 private const val TAG = "MainActivity"
 
@@ -33,9 +37,38 @@ class MainActivity : ComponentActivity() {
     private val themeViewModel: ThemeViewModel by viewModels()
     private val initViewModel: InitializationViewModel by viewModels()
 
+    private val locationPermissionRequest = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        when {
+            permissions.getOrDefault(android.Manifest.permission.ACCESS_FINE_LOCATION, false) ||
+                    permissions.getOrDefault(android.Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
+                Log.d(TAG, "Location permissions granted")
+            }
+            else -> {
+                Toast.makeText(
+                    this,
+                    "Se requieren permisos de ubicación para la navegación",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Configuration.getInstance().let { config ->
+            config.userAgentValue = packageName
+            config.osmdroidBasePath = File(cacheDir, "osmdroid")
+            config.osmdroidTileCache = File(config.osmdroidBasePath, "tiles")
+        }
+
+        locationPermissionRequest.launch(arrayOf(
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+            android.Manifest.permission.ACCESS_COARSE_LOCATION
+        ))
 
         Log.d(TAG, "Starting app initialization")
         initViewModel.isInitialized.observe(this) { isInitialized ->
@@ -93,6 +126,7 @@ class MainActivity : ComponentActivity() {
                 if (!isAuthLoading) {
                     ModalNavigationDrawer(
                         drawerState = drawerState,
+                        gesturesEnabled = false,
                         drawerContent = {
                             if (isAuthenticated) {
                                 DrawerMenu(
@@ -123,7 +157,6 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         },
-                        gesturesEnabled = isAuthenticated
                     ) {
                         Surface(
                             modifier = Modifier.fillMaxSize(),
