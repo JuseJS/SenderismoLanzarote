@@ -28,7 +28,7 @@ Aplicación Android desarrollada como proyecto para la asignatura de Programaci�
   - Corrutinas y Flow para operaciones asíncronas
 
 ## Estructura del Proyecto
-
+Mi proyecto usa una arquitectura `Feature-Oriented Clean Architecture` organizada de la siguiente manera:
 ```
 app/
 ├─ data/                 # Capa de datos
@@ -57,6 +57,7 @@ app/
 │    ├─ navigation/     # Navegación en ruta
 │    ├─ profile/        # Perfil de usuario
 ```
+Esta estructura permite una separación clara de responsabilidades, facilita el mantenimiento y promueve la escalabilidad del proyecto. Además, utiliza principios como SOLID e inversión de dependencias (Hilt) para una arquitectura robusta y extensible.
 
 ## Características Principales
 
@@ -77,6 +78,27 @@ app/
 - Tracking de posición del usuario
 - Marcadores de puntos de interés
 - Soporte para modo nocturno en mapas
+
+
+## Capturas del proyecto
+# Pantalla de Auth
+![Página de Auth](img/auth_login.png "Vistal de Inicio de Sesion")
+
+# Pantalla de Home sin ruta activa
+![Página de Home sin ruta activa](img/home_screen_no_route.png "Vistal de Home sin ruta activa")
+
+# Pantalla de Home: Información de ruta
+![Página de Home: Informacion de ruta](img/route_dialog.png "Vistal de Home: Informacion de ruta")
+
+# Pantalla de Home con ruta activa
+![Página de Home con ruta activa](img/home_screen_route.png "Vistal de Home con ruta activa")
+
+# Pantalla de Profile
+![Página de Profile](img/profile.png "Vistal de Profile")
+
+# Pantalla de Profile en modo edición
+![Página de Profile en modo edición](img/edit_profile.png "Vistal de Profile en modo edición")
+
 
 ## Autor
 
