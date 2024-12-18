@@ -16,8 +16,11 @@ interface RouteDao {
     @Query("""
         SELECT * FROM routes 
         WHERE difficultyLevelId <= :maxDifficulty 
-        AND distanceKm <= :maxDistance
-        AND CAST((substr(estimatedDuration, 1, 2) * 60 + substr(estimatedDuration, 4, 2)) AS INTEGER) <= :maxDurationMinutes
+        AND CAST(distanceKm AS DECIMAL) <= :maxDistance
+        AND CAST(
+            (substr(estimatedDuration, 1, instr(estimatedDuration, ':') - 1) * 60) + 
+            substr(estimatedDuration, instr(estimatedDuration, ':') + 1)
+            AS INTEGER) <= :maxDurationMinutes
     """)
     fun getRoutesByPreferences(
         maxDifficulty: Int,
