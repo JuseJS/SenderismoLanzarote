@@ -65,6 +65,7 @@ dependencies {
     // Maps
     implementation(libs.osmdroid)
     implementation(libs.osmdroid.mapsforge)
+    implementation(libs.play.services.location)
 
     // Room
     implementation(libs.androidx.room.runtime)
