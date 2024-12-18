@@ -1,5 +1,6 @@
 package org.iesharia.senderismolanzarote.presentation.features.home.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -9,6 +10,7 @@ import org.iesharia.senderismolanzarote.data.logger.ErrorLogger
 import org.iesharia.senderismolanzarote.data.mapper.error.toErrorModel
 import org.iesharia.senderismolanzarote.data.repository.auth.AuthRepository
 import org.iesharia.senderismolanzarote.domain.model.user.FavoriteRouteModel
+import org.iesharia.senderismolanzarote.domain.repository.map.NavigationRepository
 import org.iesharia.senderismolanzarote.domain.repository.route.main.PointOfInterestRepository
 import org.iesharia.senderismolanzarote.domain.repository.route.main.RouteRepository
 import org.iesharia.senderismolanzarote.domain.repository.user.FavoriteRouteRepository
@@ -25,6 +27,7 @@ class HomeViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val pointOfInterestRepository: PointOfInterestRepository,
     private val favoriteRouteRepository: FavoriteRouteRepository,
+    private val navigationRepository: NavigationRepository,
     private val userRepository: UserRepository,
     private val authRepository: AuthRepository,
     errorHandler: ErrorHandler,
@@ -37,38 +40,21 @@ class HomeViewModel @Inject constructor(
     init {
         loadInitialData()
         observeFavorites()
+        observeNavigation()
     }
 
-    private fun observeFavorites() {
-        viewModelScope.launch {
-            try {
-                val userId = authRepository.getCurrentUserId()
-                favoriteRouteRepository.observeFavoriteRoutes(userId)
-                    .collect { favorites ->
-                        val favoriteIds = favorites.map { it.routeModel.id }.toSet()
-                        _uiState.update { it.copy(
-                            favoriteRoutes = UiState.Success(favorites.map { it.routeModel }),
-                            routesFavoriteStatus = favoriteIds
-                        )}
-                    }
-            } catch (e: Exception) {
-                val error = e.toErrorModel()
-                errorLogger.logError(error)
-            }
-        }
-    }
-
-    private fun loadInitialData() {
+    fun loadInitialData() {
         loadAllRoutes()
         loadSuggestedRoutes()
     }
 
-    private fun loadAllRoutes() {
+    fun loadAllRoutes() {
         viewModelScope.launch {
             _uiState.update { it.copy(allRoutes = UiState.Loading) }
             try {
-                val routes = routeRepository.getAllRoutes().first()
-                _uiState.update { it.copy(allRoutes = UiState.Success(routes)) }
+                routeRepository.getAllRoutes().collectLatest { routes ->
+                    _uiState.update { it.copy(allRoutes = UiState.Success(routes)) }
+                }
             } catch (e: Exception) {
                 val error = e.toErrorModel()
                 errorLogger.logError(error)
@@ -77,30 +63,106 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun loadSuggestedRoutes() {
+    fun loadSuggestedRoutes() {
         viewModelScope.launch {
             _uiState.update { it.copy(suggestedRoutes = UiState.Loading) }
             try {
-                val preferences = userPreferencesRepository.getAllPreferences().first()
-                if (preferences.isEmpty()) {
+                val userId = authRepository.getCurrentUserId()
+                val preferences = userPreferencesRepository.getUserPreferences(userId)
+
+                if (preferences != null) {
+                    routeRepository.getRoutesByPreferences(
+                        maxDifficulty = preferences.preferredDifficultyLevel.id,
+                        maxDistance = preferences.maxDistanceKm,
+                        maxDurationMinutes = preferences.maxDurationMinutes
+                    ).collectLatest { routes ->
+                        _uiState.update {
+                            it.copy(suggestedRoutes = UiState.Success(routes))
+                        }
+                    }
+                } else {
                     _uiState.update { it.copy(suggestedRoutes = UiState.Success(emptyList())) }
-                    return@launch
                 }
-
-                val userPrefs = preferences.first()
-                val routes = routeRepository.getRoutesByPreferences(
-                    maxDifficulty = userPrefs.preferredDifficultyLevel.id,
-                    maxDistance = userPrefs.maxDistanceKm,
-                    maxDurationMinutes = userPrefs.maxDurationMinutes
-                ).first()
-
-                _uiState.update { it.copy(suggestedRoutes = UiState.Success(routes)) }
             } catch (e: Exception) {
                 val error = e.toErrorModel()
                 errorLogger.logError(error)
                 _uiState.update { it.copy(suggestedRoutes = UiState.Error(error.message)) }
             }
         }
+    }
+
+    private fun observeFavorites() {
+        viewModelScope.launch {
+            try {
+                val userId = authRepository.getCurrentUserId()
+                favoriteRouteRepository.observeFavoriteRoutes(userId)
+                    .collect { favorites ->
+                        _uiState.update { it.copy(
+                            favoriteRoutes = UiState.Success(favorites.map { it.routeModel }),
+                            routesFavoriteStatus = favorites.map { it.routeModel.id }.toSet()
+                        )}
+                    }
+            } catch (e: Exception) {
+                val error = e.toErrorModel()
+                errorLogger.logError(error)
+                _uiState.update { it.copy(
+                    favoriteRoutes = UiState.Error(error.message)
+                )}
+            }
+        }
+    }
+
+    private fun observeNavigation() {
+        viewModelScope.launch {
+            navigationRepository.getNavigationState().collect { navState ->
+                _uiState.update { it.copy(navigationState = navState) }
+            }
+        }
+    }
+
+    fun selectRoute(routeId: Int) {
+        viewModelScope.launch {
+            try {
+                val route = routeRepository.getRouteById(routeId)
+                    ?: throw Exception("Ruta no encontrada")
+
+                _uiState.update { it.copy(
+                    selectedRoute = UiState.Success(route)
+                )}
+
+                loadPointsOfInterest(routeId)
+            } catch (e: Exception) {
+                val error = e.toErrorModel()
+                errorLogger.logError(error)
+                _uiState.update { it.copy(
+                    selectedRoute = UiState.Error(error.message)
+                )}
+            }
+        }
+    }
+
+    private fun loadPointsOfInterest(routeId: Int) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(pointsOfInterest = UiState.Loading) }
+            try {
+                pointOfInterestRepository.getRoutePointsOfInterest(routeId)
+                    .collectLatest { points ->
+                        Log.d("HomeViewModel", "POIs cargados: ${points.size}")
+                        _uiState.update { it.copy(pointsOfInterest = UiState.Success(points)) }
+                    }
+            } catch (e: Exception) {
+                val error = e.toErrorModel()
+                errorLogger.logError(error)
+                _uiState.update { it.copy(pointsOfInterest = UiState.Error(error.message)) }
+            }
+        }
+    }
+
+    fun clearSelectedRoute() {
+        _uiState.update { it.copy(
+            selectedRoute = UiState.Initial,
+            pointsOfInterest = UiState.Initial
+        )}
     }
 
     fun toggleFavorite(routeId: Int) {
@@ -129,52 +191,27 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun selectRoute(routeId: Int) {
+    fun startRoute(routeId: Int) {
         viewModelScope.launch {
             try {
-                val route = routeRepository.getRouteById(routeId)
-                    ?: throw Exception("Ruta no encontrada")
-
-                _uiState.update { it.copy(
-                    selectedRoute = UiState.Success(route)
-                )}
-
                 loadPointsOfInterest(routeId)
+                navigationRepository.startNavigation(routeId)
+                clearSelectedRoute()
             } catch (e: Exception) {
                 val error = e.toErrorModel()
                 errorLogger.logError(error)
-                _uiState.update { it.copy(
-                    selectedRoute = UiState.Error(error.message)
-                )}
             }
         }
     }
 
-    private fun loadPointsOfInterest(routeId: Int) {
+    fun stopRoute() {
         viewModelScope.launch {
             try {
-                val points = pointOfInterestRepository.getRoutePointsOfInterest(routeId).first()
-                _uiState.update { it.copy(
-                    pointsOfInterest = UiState.Success(points)
-                )}
+                navigationRepository.stopNavigation()
             } catch (e: Exception) {
                 val error = e.toErrorModel()
                 errorLogger.logError(error)
-                _uiState.update { it.copy(
-                    pointsOfInterest = UiState.Error(error.message)
-                )}
             }
         }
-    }
-
-    fun clearSelectedRoute() {
-        _uiState.update { it.copy(
-            selectedRoute = UiState.Initial,
-            pointsOfInterest = UiState.Initial
-        )}
-    }
-
-    fun isRouteFavorite(routeId: Int): Boolean {
-        return routeId in (_uiState.value.routesFavoriteStatus)
     }
 }
