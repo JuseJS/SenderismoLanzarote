@@ -17,8 +17,6 @@ import org.iesharia.senderismolanzarote.domain.model.user.UserModel
 fun ProfileHeader(
     user: UserModel,
     isEditMode: Boolean,
-    onEditClick: () -> Unit,
-    onSaveClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -57,13 +55,6 @@ fun ProfileHeader(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-
-            Button(
-                onClick = if (isEditMode) onSaveClick else onEditClick,
-                modifier = Modifier.padding(top = 8.dp)
-            ) {
-                Text(if (isEditMode) "Guardar cambios" else "Editar perfil")
             }
         }
     }
